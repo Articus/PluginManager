@@ -15,7 +15,7 @@ class Laminas implements PluginManagerInterface
 	}
 
 	/**
-	 * @inheritdoc 
+	 * @inheritdoc
 	 */
 	public function __invoke(string $name, array $options)
 	{
