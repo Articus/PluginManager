@@ -1,0 +1,40 @@
+name: Run tests
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.4'
+            has_unique_dependencies: true
+          - php: '8.0'
+            has_unique_dependencies: true
+          - php: '8.1'
+          - php: '8.2'
+            upload_coverage: true
+    container: ghcr.io/articus/phpdbg-coveralls:${{ matrix.php }}_2.5.3_2022-12-10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Use unique composer.lock
+        if: matrix.has_unique_dependencies
+        run: cp ./composer.lock.${{ matrix.php }} ./composer.lock
+
+      - name: Install dependencies via Composer
+        run: php ./composer.phar install --no-interaction --no-progress --prefer-dist --classmap-authoritative
+
+      - name: Run Kahlan tests
+        run: |
+          mkdir -p ./spec_output
+          phpdbg -qrr ./vendor/kahlan/kahlan/bin/kahlan
+
+      - name: Upload coverage to coveralls.io
+        if: matrix.upload_coverage
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls -v
