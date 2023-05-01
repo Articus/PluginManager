@@ -22,6 +22,11 @@ class Simple
 	 */
 	public array $aliases = [];
 
+	/**
+	 * @var array<string, bool>
+	 */
+	public array $shares = [];
+
 	public function __construct(iterable $options)
 	{
 		foreach ($options as $key => $value)
@@ -36,6 +41,9 @@ class Simple
 					break;
 				case 'aliases':
 					$this->aliases = $value;
+					break;
+				case 'shares':
+					$this->shares = $value;
 					break;
 			}
 		}

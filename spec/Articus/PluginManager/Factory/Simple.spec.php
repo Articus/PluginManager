@@ -109,11 +109,54 @@ describe(PM\Factory\Simple::class, function ()
 			$container = mock(ContainerInterface::class);
 
 			$container->shouldReceive('get')->with('config')->andReturn([$configKey => $config])->once();
-			$pluginFactory->shouldReceive('__invoke')->with($container, $pluginAlias, $pluginOptions)->andReturn($plugin)->once();
+			$pluginFactory->shouldReceive('__invoke')->with($container, $pluginName, $pluginOptions)->andReturn($plugin)->once();
 
 			$managerFactory = new PM\Factory\Simple($configKey);
 			$manager = $managerFactory($container, 'test_service_name');
 			expect($manager($pluginAlias, $pluginOptions))->toBe($plugin);
+		});
+		it('supports shared plugin class name in configuration', function ()
+		{
+			$pluginName = 'test_plugin_name';
+			$pluginOptions = ['test' => 123];
+			$configKey = 'test_config_key';
+			$config = [
+				'invokables' => [$pluginName => Example\InvokableService::class],
+				'shares' => [$pluginName => true],
+			];
+			$container = mock(ContainerInterface::class);
+			$container->shouldReceive('get')->with('config')->andReturn([$configKey => $config])->once();
+
+			$managerFactory = new PM\Factory\Simple($configKey);
+			$manager = $managerFactory($container, 'test_service_name');
+			$plugin = $manager($pluginName, $pluginOptions);
+			expect($plugin)->toBeAnInstanceOf(Example\InvokableService::class);
+			if ($plugin instanceof Example\InvokableService)
+			{
+				expect($plugin->getOptions())->toBe($pluginOptions);
+			}
+			expect($manager($pluginName, $pluginOptions))->toBe($plugin);
+		});
+		it('supports shared plugin factory in configuration', function ()
+		{
+			$pluginName = 'test_plugin_name';
+			$pluginOptions = ['test' => 123];
+			$pluginFactory = mock(PM\PluginFactoryInterface::class);
+			$plugin = mock();
+			$configKey = 'test_config_key';
+			$config = [
+				'factories' => [$pluginName => $pluginFactory],
+				'shares' => [$pluginName => true],
+			];
+			$container = mock(ContainerInterface::class);
+
+			$container->shouldReceive('get')->with('config')->andReturn([$configKey => $config])->once();
+			$pluginFactory->shouldReceive('__invoke')->with($container, $pluginName, $pluginOptions)->andReturn($plugin)->once();
+
+			$managerFactory = new PM\Factory\Simple($configKey);
+			$manager = $managerFactory($container, 'test_service_name');
+			expect($manager($pluginName, $pluginOptions))->toBe($plugin);
+			expect($manager($pluginName, $pluginOptions))->toBe($plugin);
 		});
 		it('throws on non-callable plugin factory instance', function ()
 		{

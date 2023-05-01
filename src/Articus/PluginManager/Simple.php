@@ -4,7 +4,12 @@ declare(strict_types=1);
 namespace Articus\PluginManager;
 
 use Psr\Container\ContainerInterface;
+use function serialize;
 
+/**
+ * @template PluginClass
+ * @implements PluginManagerInterface<PluginCLass>
+ */
 class Simple implements PluginManagerInterface
 {
 	/**
@@ -13,7 +18,7 @@ class Simple implements PluginManagerInterface
 	protected ContainerInterface $container;
 
 	/**
-	 * @var array<string, callable|PluginFactoryInterface>
+	 * @var array<string, callable|PluginFactoryInterface<PluginClass>>
 	 */
 	protected array $factories;
 
@@ -23,15 +28,27 @@ class Simple implements PluginManagerInterface
 	protected array $aliases;
 
 	/**
+	 * @var array<string, bool>
+	 */
+	protected array $shares;
+
+	/**
+	 * @var array<string, array<string, PluginClass>>
+	 */
+	protected array $plugins = [];
+
+	/**
 	 * @param ContainerInterface $container
 	 * @param array<string, callable|PluginFactoryInterface> $factories
 	 * @param array<string, string> $aliases
+	 * @param array<string, bool> $shares
 	 */
-	public function __construct(ContainerInterface $container, array $factories, array $aliases)
+	public function __construct(ContainerInterface $container, array $factories, array $aliases, array $shares)
 	{
 		$this->container = $container;
 		$this->factories = $factories;
 		$this->aliases = $aliases;
+		$this->shares = $shares;
 	}
 
 	/**
@@ -39,23 +56,39 @@ class Simple implements PluginManagerInterface
 	 */
 	public function __invoke(string $name, array $options)
 	{
-		$factory = $this->getFactory($name);
-		return $factory($this->container, $name, $options);
+		$result = null;
+		$pluginName = $this->aliases[$name] ?? $name;
+		if ($this->shares[$pluginName] ?? false)
+		{
+			$pluginHash = serialize($options);
+			$result = $this->plugins[$pluginName][$pluginHash] ?? null;
+			if ($result === null)
+			{
+				$result = $this->createPlugin($pluginName, $options);
+				$this->plugins[$pluginName][$pluginHash] = $result;
+			}
+		}
+		else
+		{
+			$result = $this->createPlugin($pluginName, $options);
+		}
+		return $result;
 	}
 
 	/**
 	 * @param string $name
-	 * @return callable|PluginFactoryInterface
+	 * @param array $options
+	 * @return PluginClass
 	 * @throws Exception\UnknownPlugin
 	 */
-	protected function getFactory(string $name): callable
+	protected function createPlugin(string $name, array $options)
 	{
-		$result = $this->factories[$this->aliases[$name] ?? $name] ?? null;
-		if ($result === null)
+		$factory = $this->factories[$name] ?? null;
+		if ($factory === null)
 		{
 			throw new Exception\UnknownPlugin($name);
 		}
 
-		return $result;
+		return $factory($this->container, $name, $options);
 	}
 }

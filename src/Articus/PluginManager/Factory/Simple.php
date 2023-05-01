@@ -45,6 +45,6 @@ class Simple implements PM\ServiceFactoryInterface
 
 			$factories[$pluginName] = $pluginFactory;
 		}
-		return new PM\Simple($container, $factories, $options->aliases);
+		return new PM\Simple($container, $factories, $options->aliases, $options->shares);
 	}
 }
