@@ -12,6 +12,7 @@ interface PluginManagerInterface
 	 * @param string $name
 	 * @param array $options
 	 * @return PluginClass
+	 * @throws Exception\UnknownPlugin
 	 */
 	public function __invoke(string $name, array $options);
 }
