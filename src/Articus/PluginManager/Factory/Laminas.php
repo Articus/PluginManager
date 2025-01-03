@@ -24,6 +24,9 @@ class Laminas implements PM\ServiceFactoryInterface
 		$config = $this->getServiceConfig($container);
 		$laminasPluginManager = new class ($container, $config) extends AbstractPluginManager
 		{
+			public function validate($instance): void
+			{
+			}
 		};
 		return new PM\Laminas($laminasPluginManager);
 	}
